@@ -1,0 +1,145 @@
+:root {
+  --bg-main: #06100d;
+  --bg-gradient: radial-gradient(circle at 50% 0%, #133427 0%, #081712 55%, #040907 100%);
+  --surface-card: rgba(14, 34, 26, 0.85);
+  --surface-card-hover: rgba(22, 53, 40, 0.95);
+  --surface-elevated: rgba(26, 61, 47, 0.9);
+  --border-gold: rgba(246, 196, 69, 0.25);
+  --border-gold-bright: rgba(246, 196, 69, 0.6);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+
+  --gold-primary: #f6c445;
+  --gold-light: #ffdf79;
+  --gold-dark: #c5931e;
+  --gold-glow: 0 0 20px rgba(246, 196, 69, 0.35);
+
+  --emerald-accent: #10b981;
+  --emerald-glow: 0 0 16px rgba(16, 185, 129, 0.35);
+
+  --ruby-red: #ff4757;
+  --ruby-glow: 0 0 16px rgba(255, 71, 87, 0.3);
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-gold: #f6c445;
+
+  --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.6);
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  min-height: 100%;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+body {
+  background-image: var(--bg-gradient);
+  background-attachment: fixed;
+  background-size: cover;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:active {
+  transform: scale(0.96);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(246, 196, 69, 0.25);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(246, 196, 69, 0.5);
+}
+
+/* Animation Utilities */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(246, 196, 69, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(246, 196, 69, 0.65);
+  }
+}
+
+@keyframes floatAnim {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes scanLine {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(1000%); }
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+.animate-float {
+  animation: floatAnim 3s infinite ease-in-out;
+}
+
+.animate-fade-in {
+  animation: fadeInScale 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

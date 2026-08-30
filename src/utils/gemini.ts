@@ -1,0 +1,142 @@
+import type { PlayingCard, Rank, Suit } from '../types/game';
+
+export interface CardDetectionResult {
+  cards: PlayingCard[];
+  confidence?: string;
+  notes?: string;
+  rawResponse?: string;
+}
+
+const VALID_RANKS: Set<Rank> = new Set(['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']);
+const VALID_SUITS: Set<Suit> = new Set(['♠', '♥', '♦', '♣']);
+
+function normalizeRank(rawRank: string): Rank {
+  const clean = rawRank.trim().toUpperCase();
+  if (clean === '1' || clean === 'ACE') return 'A';
+  if (clean === 'JACK') return 'J';
+  if (clean === 'QUEEN') return 'Q';
+  if (clean === 'KING') return 'K';
+  if (clean === 'T') return '10';
+  if (VALID_RANKS.has(clean as Rank)) return clean as Rank;
+  return 'A'; // fallback
+}
+
+function normalizeSuit(rawSuit: string): Suit {
+  const clean = rawSuit.trim().toUpperCase();
+  if (clean === '♠' || clean === 'S' || clean.includes('SPADE')) return '♠';
+  if (clean === '♥' || clean === 'H' || clean.includes('HEART')) return '♥';
+  if (clean === '♦' || clean === 'D' || clean.includes('DIAMOND')) return '♦';
+  if (clean === '♣' || clean === 'C' || clean.includes('CLUB')) return '♣';
+  if (VALID_SUITS.has(clean as Suit)) return clean as Suit;
+  return '♠'; // fallback
+}
+
+/**
+ * Sends a base64 encoded image to the Gemini Multimodal Vision API to detect playing cards in a hand.
+ */
+export async function detectCardsWithGemini(
+  base64Image: string,
+  apiKey: string,
+  mimeType: string = 'image/jpeg'
+): Promise<CardDetectionResult> {
+  if (!apiKey || !apiKey.trim()) {
+    throw new Error('No Gemini API key provided. Please enter your API key in Settings.');
+  }
+
+  // Strip data URL header if present
+  const base64Data = base64Image.includes('base64,')
+    ? base64Image.split('base64,')[1]
+    : base64Image;
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(
+    apiKey.trim()
+  )}`;
+
+  const promptText = `
+You are an expert playing card detection AI for the card game "It's a 9 Thing!".
+Examine the image showing a player's hand laid out or held.
+Detect every distinct playing card visible in the image.
+The player is holding/laying out their losing hand of 9 cards.
+Identify the Rank (A, 2, 3, 4, 5, 6, 7, 8, 9, 10, J, Q, K) and Suit (♠, ♥, ♦, ♣) of each card.
+
+Return a strictly valid JSON object with the following structure:
+{
+  "cards": [
+    { "rank": "K", "suit": "♠" },
+    { "rank": "10", "suit": "♦" }
+  ],
+  "confidence": "high",
+  "notes": "9 cards clearly identified"
+}
+`;
+
+  const payload = {
+    contents: [
+      {
+        parts: [
+          { text: promptText },
+          {
+            inline_data: {
+              mime_type: mimeType,
+              data: base64Data,
+            },
+          },
+        ],
+      },
+    ],
+    generationConfig: {
+      response_mime_type: 'application/json',
+      temperature: 0.1,
+    },
+  };
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    let errorMsg = `Gemini API error (${response.status}): ${response.statusText}`;
+    try {
+      const parsed = JSON.parse(errorBody);
+      if (parsed?.error?.message) {
+        errorMsg = `Gemini API: ${parsed.error.message}`;
+      }
+    } catch {
+      // ignore json parse error
+    }
+    throw new Error(errorMsg);
+  }
+
+  const json = await response.json();
+  const textContent = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  if (!textContent) {
+    throw new Error('Gemini API did not return any candidate content.');
+  }
+
+  try {
+    const parsedData = JSON.parse(textContent);
+    const rawCards = Array.isArray(parsedData?.cards) ? parsedData.cards : [];
+
+    const cards: PlayingCard[] = rawCards.map((c: any, index: number) => ({
+      id: `card-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 4)}`,
+      rank: normalizeRank(String(c.rank || 'A')),
+      suit: normalizeSuit(String(c.suit || '♠')),
+    }));
+
+    return {
+      cards,
+      confidence: parsedData.confidence || 'medium',
+      notes: parsedData.notes || '',
+      rawResponse: textContent,
+    };
+  } catch (err: any) {
+    console.error('Failed to parse Gemini output:', textContent, err);
+    throw new Error(`Failed to parse card data from Gemini response: ${err.message}`);
+  }
+}
