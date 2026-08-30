@@ -2469,3 +2469,68 @@
     transform: rotate(360deg);
   }
 }
+
+/* ---------------------------------------------------------
+   RESTART GAME MODAL
+   --------------------------------------------------------- */
+.restart-modal {
+  max-width: 400px;
+}
+
+.restart-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.restart-warning-card {
+  display: flex;
+  gap: 12px;
+  background: rgba(255, 71, 87, 0.12);
+  border: 1px solid rgba(255, 71, 87, 0.35);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+
+.restart-warning-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.restart-warning-text strong {
+  font-size: 0.95rem;
+  color: #fff;
+}
+
+.restart-warning-text p {
+  font-size: 0.8rem;
+  color: #ffb8b8;
+  line-height: 1.4;
+}
+
+.restart-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-danger-restart {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--ruby-red);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  font-weight: 800;
+  box-shadow: 0 4px 14px rgba(255, 71, 87, 0.35);
+}
+
+.icon-btn.hover-ruby:hover, .icon-btn.hover-ruby:active {
+  background: rgba(255, 71, 87, 0.2);
+  color: var(--ruby-red);
+  border-color: rgba(255, 71, 87, 0.5);
+}
+

@@ -15,6 +15,7 @@ import { ScoreRoundFlow } from './components/ScoreRoundFlow';
 import { EndGameModal } from './components/EndGameModal';
 import { HistoryModal } from './components/HistoryModal';
 import { SettingsModal } from './components/SettingsModal';
+import { RestartConfirmModal } from './components/RestartConfirmModal';
 import { Award, Sparkles, RefreshCw } from 'lucide-react';
 import './App.css';
 
@@ -26,6 +27,7 @@ export function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
   const [isEndGameOpen, setIsEndGameOpen] = useState<boolean>(false);
+  const [isRestartOpen, setIsRestartOpen] = useState<boolean>(false);
 
   // Auto-save game state to localStorage whenever it changes
   useEffect(() => {
@@ -46,6 +48,7 @@ export function App() {
     setGameState(newState);
     setIsScoringRound(false);
     setIsEndGameOpen(false);
+    setIsRestartOpen(false);
   };
 
   const handleResetGame = () => {
@@ -53,6 +56,7 @@ export function App() {
     setGameState(null);
     setIsScoringRound(false);
     setIsEndGameOpen(false);
+    setIsRestartOpen(false);
   };
 
   const handleCompleteRound = (result: RoundResult) => {
@@ -119,6 +123,7 @@ export function App() {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenHistory={() => setIsHistoryOpen(true)}
         onOpenStats={() => setIsEndGameOpen(true)}
+        onRestartGame={() => setIsRestartOpen(true)}
         gameCompleted={gameState.gameCompleted}
       />
 
@@ -163,7 +168,7 @@ export function App() {
               <button
                 type="button"
                 className="btn-new-game-secondary"
-                onClick={() => setIsSettingsOpen(true)}
+                onClick={() => setIsRestartOpen(true)}
               >
                 <RefreshCw size={16} />
                 <span>Start New Game</span>
@@ -214,6 +219,13 @@ export function App() {
           onClose={() => setIsEndGameOpen(false)}
         />
       )}
+
+      {/* Restart Game Confirmation Modal */}
+      <RestartConfirmModal
+        isOpen={isRestartOpen}
+        onConfirm={handleResetGame}
+        onClose={() => setIsRestartOpen(false)}
+      />
     </div>
   );
 }

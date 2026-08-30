@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, History, Sparkles, Award } from 'lucide-react';
+import { Settings, History, Sparkles, Award, RotateCcw } from 'lucide-react';
 import { ROUND_WILD_RANKS } from '../utils/scoring';
 
 interface HeaderProps {
@@ -8,6 +8,7 @@ interface HeaderProps {
   onOpenSettings: () => void;
   onOpenHistory: () => void;
   onOpenStats?: () => void;
+  onRestartGame?: () => void;
   gameCompleted: boolean;
 }
 
@@ -17,6 +18,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSettings,
   onOpenHistory,
   onOpenStats,
+  onRestartGame,
   gameCompleted,
 }) => {
   const wildRank = ROUND_WILD_RANKS[currentRound] || 'A';
@@ -49,6 +51,16 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="header-actions">
+          {onRestartGame && (
+            <button
+              className="icon-btn hover-ruby"
+              onClick={onRestartGame}
+              title="Restart Game"
+              aria-label="Restart Game"
+            >
+              <RotateCcw size={18} />
+            </button>
+          )}
           {gameCompleted && onOpenStats && (
             <button
               className="icon-btn highlight-gold"
