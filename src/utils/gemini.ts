@@ -32,8 +32,8 @@ function normalizeSuit(rawSuit: string): Suit {
 }
 
 /**
- * Calls Gemini Multimodal Vision API using the lightweight Flash model (gemini-2.5-flash with fallback to gemini-1.5-flash).
- * This ensures the lowest latency and 100% free-tier eligibility on Google AI Studio.
+ * Calls Gemini Multimodal Vision API using Google's latest high-speed, free-tier Flash models:
+ * gemini-3.6-flash with automatic fallback to gemini-3.5-flash and gemini-3.5-flash-lite.
  */
 export async function detectCardsWithGemini(
   base64Image: string,
@@ -87,8 +87,8 @@ Return a strictly valid JSON object with the following structure:
     },
   };
 
-  // Models to try in order of preference (lowest-cost / highest speed Flash tier)
-  const candidateModels = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+  // Models to try in order of preference (latest Flash tier)
+  const candidateModels = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'];
   let lastErrorMsg = '';
 
   for (const model of candidateModels) {
@@ -114,11 +114,11 @@ Return a strictly valid JSON object with the following structure:
             errorMsg = parsed.error.message;
           }
         } catch {
-          // ignore
+          // ignore json parse error
         }
         lastErrorMsg = errorMsg;
-        // If model not found (404), try fallback model
-        if (response.status === 404) {
+        // Try fallback if model not found or temporarily unavailable
+        if (response.status === 404 || response.status === 503) {
           continue;
         }
         throw new Error(errorMsg);
