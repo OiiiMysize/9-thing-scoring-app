@@ -18,7 +18,7 @@ function normalizeRank(rawRank: string): Rank {
   if (clean === 'KING') return 'K';
   if (clean === 'T') return '10';
   if (VALID_RANKS.has(clean as Rank)) return clean as Rank;
-  return 'A'; // fallback
+  return 'A';
 }
 
 function normalizeSuit(rawSuit: string): Suit {
@@ -28,11 +28,12 @@ function normalizeSuit(rawSuit: string): Suit {
   if (clean === '♦' || clean === 'D' || clean.includes('DIAMOND')) return '♦';
   if (clean === '♣' || clean === 'C' || clean.includes('CLUB')) return '♣';
   if (VALID_SUITS.has(clean as Suit)) return clean as Suit;
-  return '♠'; // fallback
+  return '♠';
 }
 
 /**
- * Sends a base64 encoded image to the Gemini Multimodal Vision API to detect playing cards in a hand.
+ * Calls Gemini Multimodal Vision API using the lightweight Flash model (gemini-2.5-flash with fallback to gemini-1.5-flash).
+ * This ensures the lowest latency and 100% free-tier eligibility on Google AI Studio.
  */
 export async function detectCardsWithGemini(
   base64Image: string,
@@ -47,10 +48,6 @@ export async function detectCardsWithGemini(
   const base64Data = base64Image.includes('base64,')
     ? base64Image.split('base64,')[1]
     : base64Image;
-
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(
-    apiKey.trim()
-  )}`;
 
   const promptText = `
 You are an expert playing card detection AI for the card game "It's a 9 Thing!".
@@ -90,53 +87,71 @@ Return a strictly valid JSON object with the following structure:
     },
   };
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
+  // Models to try in order of preference (lowest-cost / highest speed Flash tier)
+  const candidateModels = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+  let lastErrorMsg = '';
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    let errorMsg = `Gemini API error (${response.status}): ${response.statusText}`;
+  for (const model of candidateModels) {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(
+      apiKey.trim()
+    )}`;
+
     try {
-      const parsed = JSON.parse(errorBody);
-      if (parsed?.error?.message) {
-        errorMsg = `Gemini API: ${parsed.error.message}`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        let errorMsg = `Gemini API (${model}) error: ${response.status} ${response.statusText}`;
+        try {
+          const parsed = JSON.parse(errorBody);
+          if (parsed?.error?.message) {
+            errorMsg = parsed.error.message;
+          }
+        } catch {
+          // ignore
+        }
+        lastErrorMsg = errorMsg;
+        // If model not found (404), try fallback model
+        if (response.status === 404) {
+          continue;
+        }
+        throw new Error(errorMsg);
       }
-    } catch {
-      // ignore json parse error
+
+      const json = await response.json();
+      const textContent = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!textContent) {
+        throw new Error('Gemini API did not return any candidate content.');
+      }
+
+      const parsedData = JSON.parse(textContent);
+      const rawCards = Array.isArray(parsedData?.cards) ? parsedData.cards : [];
+
+      const cards: PlayingCard[] = rawCards.map((c: any, index: number) => ({
+        id: `card-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 4)}`,
+        rank: normalizeRank(String(c.rank || 'A')),
+        suit: normalizeSuit(String(c.suit || '♠')),
+      }));
+
+      return {
+        cards,
+        confidence: parsedData.confidence || 'medium',
+        notes: parsedData.notes || '',
+        rawResponse: textContent,
+      };
+    } catch (err: any) {
+      if (candidateModels.indexOf(model) === candidateModels.length - 1) {
+        throw new Error(err.message || lastErrorMsg || 'Failed to scan cards with Gemini.');
+      }
     }
-    throw new Error(errorMsg);
   }
 
-  const json = await response.json();
-  const textContent = json?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (!textContent) {
-    throw new Error('Gemini API did not return any candidate content.');
-  }
-
-  try {
-    const parsedData = JSON.parse(textContent);
-    const rawCards = Array.isArray(parsedData?.cards) ? parsedData.cards : [];
-
-    const cards: PlayingCard[] = rawCards.map((c: any, index: number) => ({
-      id: `card-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 4)}`,
-      rank: normalizeRank(String(c.rank || 'A')),
-      suit: normalizeSuit(String(c.suit || '♠')),
-    }));
-
-    return {
-      cards,
-      confidence: parsedData.confidence || 'medium',
-      notes: parsedData.notes || '',
-      rawResponse: textContent,
-    };
-  } catch (err: any) {
-    console.error('Failed to parse Gemini output:', textContent, err);
-    throw new Error(`Failed to parse card data from Gemini response: ${err.message}`);
-  }
+  throw new Error(lastErrorMsg || 'Failed to scan hand with Gemini Vision.');
 }
